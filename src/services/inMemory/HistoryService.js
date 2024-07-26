@@ -7,7 +7,15 @@ class HistoryService {
         this._history = [];
     }
 
-    addExpenses(user_id, category_id, { total, details }) {
+    validationUser(user_id) {
+        if (!user_id) {
+            throw new NotFoundError('Unauthorized: user_id is missing');
+        }
+
+        return true;
+    }
+
+    addExpenses(user_id, { total, details, category_id }) {
         const id = 'H_' + nanoid(14);
         const createdAt = new Date().toISOString();
         const updatedAt = createdAt;
@@ -26,10 +34,6 @@ class HistoryService {
     }
 
     getExpenses(user_id) {
-        if (!user_id) {
-            throw new NotFoundError('Unauthorized: user_id is missing');
-        }
-
         const result =  this._history.filter((h) => h.user_id == user_id);
         if (result.length === 0) {
             throw new NotFoundError('History: user_id doesn\'t have');

@@ -6,12 +6,32 @@ class CategoryService {
     constructor() {
         this._category = [];
     }
-
-    addCategory(user_id, { name, percentage, type }) {
+    
+    validationUser(user_id) {
         if (!user_id) {
             throw new NotFoundError('Unauthorized: user_id is missing');
         }
 
+        return true;
+    }
+
+    getTotalPercentage(user_id, percentage, id = null, type = "1") {
+        let currentTotal = this._category.filter(ctg => ctg.user_id === user_id).reduce((result, ctg_p) => result + ctg_p.percentage, 0);
+        
+        if (type) {
+            currentTotal = this._category.filter(ctg => ctg.user_id === user_id);
+        }
+
+        currentTotal = (id) ? currentTotal - this._category.find(ctg => ctg.id === id).percentage : currentTotal;
+        
+        if (currentTotal + percentage > 100) {
+            throw new InvariantError('Category: Limit Percentage');
+        }
+
+        return true;
+    }
+
+    addCategory(user_id, { name, percentage, type }) {
         const id = 'C_' + nanoid(14);
         const createdAt = new Date().toISOString();
         const updatedAt = createdAt;
@@ -29,12 +49,14 @@ class CategoryService {
         return id;
     }
 
-    getCategory(user_id) {
-        if (!user_id) {
-            throw new NotFoundError('Unauthorized: user_id is missing');
+    getCategory(user_id, type = null) {
+        let categories = [...this._category];
+
+        if (type) {
+            categories = categories.filter(ct => ct.type === type);
         }
 
-        const result = this._category.filter((ctg) => ctg.user_id == user_id);
+        const result = categories.filter(ct => ct.user_id === user_id);
         if (result.length === 0) {
             throw new NotFoundError('Category: user_id doesn\'t have');
         }
@@ -43,12 +65,9 @@ class CategoryService {
     }
 
     getCategoryById(id, user_id) {
-        if (!user_id){
-            throw new NotFoundError('Unauthorized: user_id is missing');
-        }
         const category = this._category.filter((ctg) => ctg.id === id)[0];
         if (!category) {
-            throw new NotFoundError('Category: not found, id not found');
+            throw new NotFoundError('Category: not found, CategoryId not found');
         }
 
         if (category.user_id !== user_id) {
@@ -59,10 +78,6 @@ class CategoryService {
     }
 
     editCategoryById(id, user_id, { name, percentage, type }) {
-        if (!user_id) {
-            throw new NotFoundError('Unauthorized: user_id is missing');
-        }
-
         const updatedAt = new Date().toISOString(); 
         const index = this._category.findIndex((ctg) => ctg.id === id);
         if (index === -1) {
@@ -83,10 +98,6 @@ class CategoryService {
     }
 
     deleteCategoryById(id, user_id) {
-        if (!user_id) {
-            throw new NotFoundError('Unauthorized: user_id is missing');
-        }
-
         const index = this._category.findIndex((ctg) => ctg.id === id);
         if (index === -1) {
             throw new NotFoundError('Category: failed to delete, id not found');

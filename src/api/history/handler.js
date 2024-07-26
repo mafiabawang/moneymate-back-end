@@ -9,13 +9,13 @@ class HistoryHandler {
     }
 
     postHistoryHandler(request, h) {
-        const { category_id } = request.params;
         const { user_id } = request.headers;
-        const { total, details } = request.payload;
-        const checkCategoryId = this._categoryService.getCategoryById(category_id, user_id);
+        const { total, details, category_id } = request.payload;
 
+        this._historyService.validationUser(user_id);
+        this._categoryService.getCategoryById(category_id, user_id);
         this._validator.validateHistoryPayload({ total, details });
-        const historyId = this._historyService.addExpenses(user_id, category_id, { total, details });
+        const historyId = this._historyService.addExpenses(user_id, { total, details, category_id });
 
         const response = h.response({
             status: 'success',
@@ -38,7 +38,7 @@ class HistoryHandler {
                 history
             }
         });
-        
+
         response.code(200);
         return response;
     }

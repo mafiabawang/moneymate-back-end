@@ -1,41 +1,70 @@
+require('dotenv').config();
 const Hapi = require('@hapi/hapi');
+const Jwt = require('@hapi/jwt');
 const ClientError = require('./exceptions/ClientError');
 
-const category = require('./api/category');
-const CategoryService = require('./services/inMemory/CategoryService');
-const CategoryValidator = require('./validator/category');
+const users = require('./api/users');
+const UsersService = require('./services/postgres/UsersService');
+const UsersValidator = require('./validator/users');
 
-const history = require('./api/history');
-const HistoryService = require('./services/inMemory/HistoryService');
-const HistoryValidator = require('./validator/history');
+const authentications = require('./api/authentifications');
+const AuthenticationsService = require('./services/postgres/AuthentificationService');
+const TokenManager = require('./tokenize/TokenManager');
+const AuthenticationsValidator = require('./validator/authentifications');
 
 const init = async () => {
-  const categoryService = new CategoryService();
-  const historyService = new HistoryService();
+  const usersService = new UsersService();
+  const authenticationsService = new AuthenticationsService();
+
   const server = Hapi.server({
-    port: 3001,
-    host: 'localhost',
+    port: process.env.PORT,
+    host: process.env.HOST,
     routes: {
-        cors: {
-            origin: ['*']
-        }
+      cors: {
+        origin: ['*']
+      }
     }
   });
- 
-  await server.register([ 
+
+  // registrasi plugin eksternal
+  await server.register([
     {
-      plugin: category,
+      plugin: Jwt
+    }
+  ]);
+
+  // mendefinisikan strategy autentikasi jwt
+  server.auth.strategy('moneymateapp_jwt', 'jwt', {
+    keys: process.env.ACCESS_TOKEN_KEY,
+    verify: {
+      aud: false,
+      iss: false,
+      sub: false,
+      maxAgeSec: process.env.ACCESS_TOKEN_AGE
+    },
+    validate: (artifacts) => ({
+      isValid: true,
+      credentials: {
+        id: artifacts.decoded.payload.id
+      }
+    })
+  });
+
+  await server.register([
+    {
+      plugin: users,
       options: {
-        service: categoryService,
-        validator: CategoryValidator
+        service: usersService,
+        validator: UsersValidator
       }
     },
     {
-      plugin: history,
+      plugin: authentications,
       options: {
-        categoryService,
-        historyService,
-        validator: HistoryValidator
+        authenticationsService,
+        usersService,
+        tokenManager: TokenManager,
+        validator: AuthenticationsValidator
       }
     }
   ]);
@@ -43,7 +72,7 @@ const init = async () => {
   server.ext('onPreResponse', (request, h) => {
     // mendapatkan konteks response dari request
     const { response } = request;
-  
+
     // penanganan client error secara internal.
     if (response instanceof ClientError) {
       const newResponse = h.response({
@@ -53,12 +82,12 @@ const init = async () => {
       newResponse.code(response.statusCode);
       return newResponse;
     }
-      
+
     return h.continue;
   });
- 
+
   await server.start();
   console.log(`Server berjalan pada ${server.info.uri}`);
 };
- 
+
 init();

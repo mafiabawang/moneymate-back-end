@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon ./src/server.js"
+    "start": "nodemon ./src/server.js",
+    "migrate": "node-pg-migrate"
   },
   "keywords": [],
   "author": "",
@@ -14,8 +15,13 @@
   },
   "dependencies": {
     "@hapi/hapi": "^21.3.7",
+    "@hapi/jwt": "^3.2.0",
+    "auto-bind": "^4.0.0",
+    "bcryptjs": "^2.4.3",
     "dotenv": "^16.4.5",
     "joi": "^17.12.2",
-    "nanoid": "^3.3.7"
+    "nanoid": "^3.3.7",
+    "node-pg-migrate": "^7.4.0",
+    "pg": "^8.12.0"
   }
 }

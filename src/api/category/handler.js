@@ -12,9 +12,10 @@ class CategoryHandler {
 
     postCategoryHandler(request, h) {
         const { user_id } = request.headers;
-        const { name, percentage } = request.payload;
-        this._validator.validateCategoryPayload({ name, percentage });
-        const categoryId = this._service.addCategory(user_id, { name, percentage, type: "1" });
+        const { name, percentage, color } = request.payload;
+        this._validator.validateCategoryPayload({ name, percentage, color });
+
+        const categoryId = this._service.addCategory(user_id, { name, percentage, type: '2', color });
 
         const response = h.response({
             status: 'success',
@@ -28,23 +29,25 @@ class CategoryHandler {
         return response;
     }
 
-    getCategoryHandler(request, h) {
+    getCategoryHandler(request) {
         const { user_id } = request.headers;
-        const category = this._service.getCategory(user_id);
-        const response = h.response({
+        const { type } = request.query;
+        this._service.validationUser(user_id);
+        const category = this._service.getCategory(user_id, type);
+
+        return {
             status: 'success',
             data: {
                 category
             }
-        });
-    
-        response.code(200);
-        return response;
+        };
     }
 
     getCategoryByIdHandler(request) {
         const { user_id } = request.headers;
         const { id } = request.params;
+
+        this._service.validationUser(user_id);
         const category = this._service.getCategoryById(id, user_id);
         return {
             status: 'success',
@@ -57,22 +60,27 @@ class CategoryHandler {
     putCategoryByIdHandler(request) {
         const { id } = request.params;
         const { user_id } = request.headers;
-        const { name, percentage } = request.payload;
+        const { name, percentage, type } = request.payload;
+
+        this._service.validationUser(user_id);
         this._validator.validateCategoryPayload({ name, percentage });
-        this._service.editCategoryById(id, user_id, { name, percentage, type:"1" });
+        this._service.getTotalPercentage(user_id, percentage, id);
+        this._service.editCategoryById(id, user_id, { name, percentage, type: type || "1" });
 
         return {
             status: 'success',
             message: 'Category: success to update'
         };
-        
+
     }
-    
-    deleteCategoryByIdHandler(request) {  
+
+    deleteCategoryByIdHandler(request) {
         const { id } = request.params;
         const { user_id } = request.headers;
+
+        this._service.validationUser(user_id);
         this._service.deleteCategoryById(id, user_id);
-        
+
         return {
             status: 'success',
             message: 'Category: success to delete'
